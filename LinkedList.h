@@ -72,6 +72,8 @@ public:
          */
         void remove() {
             if (opCnt != owner->opCnt || !pt->prev || !pt->next || removed){throw ElementNotExist("");}
+            ++opCnt;
+            ++owner->opCnt;
             pt = pt->prev;
             LinkedList::node * tmp = pt->next;
             pt->next = pt->next->next;

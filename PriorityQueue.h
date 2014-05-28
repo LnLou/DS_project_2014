@@ -131,6 +131,8 @@ public:
             if (removed || !nd->prev || !nd->next || opCnt != owner->opCnt){
                 throw ElementNotExist();
             }
+            ++opCnt;
+            ++owner->opCnt;
             removed = true;
             node * tmp = nd;
             owner->swap(nd->index, owner->currentSize);

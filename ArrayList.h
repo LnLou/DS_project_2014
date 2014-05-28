@@ -71,6 +71,8 @@ public:
          */
         void remove() {
             if (opCnt < owner->opCnt || index < 0 || index >= owner->currentSize || removed){throw ElementNotExist("");}
+            ++opcnt;
+            ++owner->opcnt;
             for (int i = index; i < owner->currentSize - 1; ++i){
                 owner->data[i] = owner->data[i+1];
             }

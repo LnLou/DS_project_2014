@@ -100,6 +100,8 @@ public:
          */
         void remove() {
         	if (removed || opCnt < owner->opCnt){throw ElementNotExist("");}
+        	++opCnt;
+        	++owner->opCnt;
         	removed = true;
         	--owner->currentSize;
         	for (int i = index; i < owner->currentSize; ++i){
