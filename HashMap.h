@@ -42,114 +42,335 @@
  * that each (key, value) pair be iterated exactly once.
  */
 template <class K, class V, class H>
-class HashMap
-{
+class HashMap {
 public:
-    class Entry
-    {
+    class Entry {
+    friend class HashMap;
+    friend class HashMap::node;
+    private:
         K key;
         V value;
     public:
-        Entry(K k, V v)
-        {
+        Entry(K k, V v) {
             key = k;
             value = v;
         }
 
-        K getKey() const
-        {
+        K getKey() const {
             return key;
         }
 
-        V getValue() const
-        {
+        V getValue() const {
             return value;
         }
     };
-
-    class Iterator
-    {
+private:
+    struct node {
+        Entry * data;
+        node * next, * prev;
+        node(HashMap::Entry * et, node * n = 0, node * p = 0){
+            data = et;
+            next = n;
+            prev = p;
+        }
+        node(){
+            data = 0;
+            next = prev = 0;
+        }
+        ~node(){
+            if (prev){
+                prev->next = next;
+            }
+            if (next){
+                next->prev = prev;
+            }
+            if (data) {delete data;}
+        }
+        void insert(node * nd){
+            nd->prev = this;
+            nd->next = next;
+            if (next){next->prev = nd;}
+            next = nd;
+        }
+    };
+    H h;
+    node ** data;
+    int currentSize, maxSize;
+    long long opCnt;
+    inline int hash(const K & x) const{
+        int result = h.hashCode(x) % maxSize;
+        if (result >= 0){
+            return result;
+        }
+        result += maxSize;
+        return result;
+    }
+    void doubleSpace(){
+        node ** tmp = data;
+        ++opCnt;
+        maxSize *= 2;
+        data = new node*[maxSize];
+        for (int i = 0; i < maxSize; ++i){
+            data[i] = new node();
+        }
+        for (int i = 0; i < maxSize/2; ++i){
+            node * p = tmp[i]->next, * q;
+            while (p){
+                q = p->next;
+                data[hash(p->data->key)]->insert(p);
+                p = q;
+            }
+            delete tmp[i];
+        }
+        delete[] tmp;
+    }
+public:
+    
+    class Iterator {
+    private:
+        HashMap::node * nd;
+        int index;
+        const HashMap * owner;
+        long long opCnt;
     public:
+        Iterator(const HashMap * hm):owner(hm){
+            nd = hm->data[0];
+            index = 0;
+            //owner = hm;
+            opCnt = hm->opCnt;
+        }
         /**
          * TODO Returns true if the iteration has more elements.
          */
-        bool hasNext() {}
+        bool hasNext() {
+            if (nd->next){return true;}
+            for (int i = index+1; i < owner->maxSize; ++i){
+                if (owner->data[i]->next){return true;}
+            }
+            return false;
+        }
 
         /**
          * TODO Returns the next element in the iteration.
          * @throw ElementNotExist exception when hasNext() == false
          */
-        const Entry &next() {}
+        const Entry &next() {
+            if (!hasNext()){throw ElementNotExist();}
+            if (nd->next){
+                nd = nd->next;
+            }
+            else{
+                for (int i = index+1; i < owner->maxSize; ++i){
+                    if (owner->data[i]->next){
+                        index = i;
+                        nd = owner->data[i]->next;
+                        break;
+                    }
+                }
+            }
+            return *(nd->data);
+        }
     };
 
     /**
      * TODO Constructs an empty hash map.
      */
-    HashMap() { }
+    HashMap(int x = 16) {
+        maxSize = x;
+        opCnt = 0;
+        currentSize = 0;
+        data = new node*[maxSize];
+        for (int i = 0; i < maxSize; ++i){
+            data[i] = new node();
+        }
+    }
 
     /**
      * TODO Destructor
      */
-    ~HashMap() { }
+    ~HashMap() {
+        for (int i = 0; i < maxSize; ++i){
+            node * p = data[i], *q;
+            while (p){
+                q = p->next;
+                delete p;
+                p = q;
+            }
+        }
+    }
 
     /**
      * TODO Assignment operator
      */
-    HashMap &operator=(const HashMap &x) { }
+    HashMap &operator=(const HashMap &x) {
+        clear();
+        while (maxSize < x.maxSize){doubleSpace();}
+        currentSize = x.currentSize;
+        for (int i = 0; i < maxSize; ++i){
+            node * p = x.data[i]->next;
+            while (p){
+                Entry * et = new Entry(p->data->key, p->data->value);
+                node * nd = new node(et, 0, 0);
+                data[i]->insert(nd);
+                p = p->next;
+            }
+        }
+        return *this;
+    }
 
     /**
      * TODO Copy-constructor
      */
-    HashMap(const HashMap &x) { }
+    HashMap(const HashMap &x) {
+        maxSize = x.maxSize;
+        currentSize = x.currentSize;
+        opCnt = 0;
+        data = new node*[maxSize];
+        for (int i = 0; i < maxSize; ++i){
+            data[i] = new node();
+        }
+        for (int i = 0; i < maxSize; ++i){
+            node * p = x.data[i];
+            while (p->next){
+                p = p->next;
+                Entry * et = new Entry(p->data->key, p->data->value);
+                node * nd = new node(et, 0, 0);
+                data[i]->insert(nd);
+            }
+        }
+    }
 
     /**
      * TODO Returns an iterator over the elements in this map.
      */
-    Iterator iterator() const {}
+    Iterator iterator() const {
+        Iterator result(this);
+        return result;
+    }
 
     /**
      * TODO Removes all of the mappings from this map.
      */
-    void clear() {}
+    void clear() {
+        for (int i = 0; i < maxSize; ++i){
+            node *p=data[i]->next,*q;
+            while (p){
+                q=p->next;
+                delete p;
+                p=q;
+            }
+            data[i]->next=0;
+        }
+        currentSize = 0;
+        ++opCnt;
+    }
 
     /**
      * TODO Returns true if this map contains a mapping for the specified key.
      */
-    bool containsKey(const K &key) const {}
+    bool containsKey(const K &key) const {
+        int index = hash(key);
+        node * p = data[index];
+        while (p->next){
+            p = p->next;
+            if (p->data->key == key){
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * TODO Returns true if this map maps one or more keys to the specified value.
      */
-    bool containsValue(const V &value) const {}
+    bool containsValue(const V &value) const {
+        for (int i = 0; i < maxSize; ++i){
+            node * p = data[i];
+            while (p->next){
+                p = p->next;
+                if (p->data->value == value){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     /**
      * TODO Returns a const reference to the value to which the specified key is mapped.
      * If the key is not present in this map, this function should throw ElementNotExist exception.
      * @throw ElementNotExist
      */
-    const V &get(const K &key) const {}
+    const V &get(const K &key) const {
+        int index = hash(key);
+        node * p = data[index]->next;
+        while (p){
+            if (p->data->key == key){
+                return p->data->value;
+            }
+            p = p->next;
+        }
+        throw ElementNotExist();
+    }
 
     /**
      * TODO Returns true if this map contains no key-value mappings.
      */
-    bool isEmpty() const {}
+    bool isEmpty() const {
+        return !currentSize;
+    }
 
     /**
      * TODO Associates the specified value with the specified key in this map.
      */
-    void put(const K &key, const V &value) {}
+    void put(const K &key, const V &value) {
+        ++opCnt;
+        int index = hash(key);
+        node * p = data[index];
+        while (p->next){
+            p = p->next;
+            if (p->data->key == key){
+                p->data->value = value;
+                return;
+            }
+        }
+        if (currentSize * 2 >= maxSize){
+            doubleSpace();
+            index = hash(key);
+        }
+        ++currentSize;
+        Entry * et = new Entry(key, value);
+        node * pt = new node(et);
+        data[index]->insert(pt);
+    }
 
     /**
      * TODO Removes the mapping for the specified key from this map if present.
      * If there is no mapping for the specified key, throws ElementNotExist exception.
      * @throw ElementNotExist
      */
-    void remove(const K &key) {}
+    void remove(const K &key) {
+        ++opCnt;
+        int index = hash(key);
+        node * p = data[index]->next, * q;
+        while (p){
+            q = p->next;
+            if (p->data->key == key){
+                delete p;
+                --currentSize;
+                return;
+            }
+            p = q;
+        }
+        throw ElementNotExist();
+    }
 
     /**
      * TODO Returns the number of key-value mappings in this map.
      */
-    int size() const {}
+    int size() const {
+        return currentSize;
+    }
 };
 
 #endif
