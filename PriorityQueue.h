@@ -83,8 +83,6 @@ private:
         for (int i = 1; i <= currentSize; ++i){
             data[i] = tmp[i];
         }
-        data[currentSize]->next = tail;
-        tail->prev = data[currentSize];
         delete [] tmp;
     }
 public:
@@ -237,6 +235,7 @@ public:
         for (int i = 0; i < currentSize; ++i){
             data[i+1] = new node(x.get(i), i+1, data[i]);
             data[i]->next = data[i+1];
+            data[i+1]->prev = data[i];
         }
         data[currentSize]->next = tail;
         tail->prev = data[currentSize];
