@@ -56,40 +56,31 @@ public:
             value = v;
         }
 
-        K getKey() const {
+        const K & getKey() const {
             return key;
         }
 
-        V getValue() const {
+        const V & getValue() const {
             return value;
         }
     };
 private:
     struct node {
         Entry * data;
-        node * next, * prev;
-        node(HashMap::Entry * et, node * n = 0, node * p = 0){
+        node * next;
+        node(HashMap::Entry * et, node * n = 0){
             data = et;
             next = n;
-            prev = p;
         }
         node(){
             data = 0;
-            next = prev = 0;
+            next = 0;
         }
         ~node(){
-            if (prev){
-                prev->next = next;
-            }
-            if (next){
-                next->prev = prev;
-            }
             if (data) {delete data;}
         }
         void insert(node * nd){
-            nd->prev = this;
             nd->next = next;
-            if (next){next->prev = nd;}
             next = nd;
         }
     };
@@ -210,7 +201,7 @@ public:
             node * p = x.data[i]->next;
             while (p){
                 Entry * et = new Entry(p->data->key, p->data->value);
-                node * nd = new node(et, 0, 0);
+                node * nd = new node(et, 0);
                 data[i]->insert(nd);
                 p = p->next;
             }
@@ -234,7 +225,7 @@ public:
             while (p->next){
                 p = p->next;
                 Entry * et = new Entry(p->data->key, p->data->value);
-                node * nd = new node(et, 0, 0);
+                node * nd = new node(et, 0);
                 data[i]->insert(nd);
             }
         }
@@ -352,11 +343,12 @@ public:
     void remove(const K &key) {
         ++opCnt;
         int index = hash(key);
-        node * p = data[index]->next, * q;
-        while (p){
+        node * p = data[index], * q;
+        while (p->next){
             q = p->next;
-            if (p->data->key == key){
-                delete p;
+            if (p->next->data->key == key){
+                p->next = q->next;
+                delete q;
                 --currentSize;
                 return;
             }

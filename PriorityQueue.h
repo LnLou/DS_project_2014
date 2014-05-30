@@ -134,21 +134,21 @@ public:
             ++opCnt;
             ++owner->opCnt;
             removed = true;
-            node * tmp = nd;
-            owner->swap(nd->index, owner->currentSize);
+            node * tmp1 = nd;
+            int index = nd->index;
+            owner->swap(index, owner->currentSize);
             --owner->currentSize;
-            if (owner->cmp(nd->index / 2, nd->index)){
-                owner->heapify(nd->index);
-            }
-            else {
-                for (int i = nd->index; i > 1; i = i>>1){
-                    if (!owner->cmp(nd->index / 2, nd->index)){
-                        owner->swap(nd->index / 2, nd->index);
-                    }
-                    else {break;}
+            owner->heapify(index);
+            while (index > 1){
+                if (!owner->cmp(index/2, index)){
+                    owner->swap(index/2, index);
                 }
+                index /= 2;
             }
-            delete tmp;
+            nd->prev->next = nd->next;
+            nd->next->prev = nd->prev;
+            nd = nd->prev;
+            delete tmp1;
         }
     };
 
