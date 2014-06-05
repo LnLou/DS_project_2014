@@ -85,7 +85,7 @@ public:
     /**
      * TODO Constructs an empty array list.
      */
-    ArrayList(int size = 256) {
+    ArrayList(int size = 8) {
         currentSize = 0;
         maxSize = size;
         data = new T[size];
@@ -143,9 +143,9 @@ public:
      * @throw IndexOutOfBound
      */
     void add(int index, const T& element) {
+        if (index < 0 || index > currentSize){throw IndexOutOfBound();}
         ++opCnt;
         ++currentSize;
-        if (index < 0 || index > currentSize){throw IndexOutOfBound();}
         if (currentSize == maxSize){doubleSpace();}
         for (int i = currentSize; i > index; --i){
             data[i] = data[i-1];
@@ -209,7 +209,6 @@ public:
      * Returns true if it was present in the list, otherwise false.
      */
     bool remove(const T &e) {
-        ++opCnt;
         for (int i = 0; i < currentSize; ++i){
             if (data[i] == e){
                 removeIndex(i);
