@@ -126,7 +126,7 @@ public:
          * @throw ElementNotExist
          */
         void remove() {
-            if (removed || nd->prev != owner->head || !nd->next || opCnt != owner->opCnt){
+            if (removed || !nd->prev || !nd->next || opCnt != owner->opCnt){
                 throw ElementNotExist();
             }
             ++opCnt;
