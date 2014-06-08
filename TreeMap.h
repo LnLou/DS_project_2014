@@ -142,7 +142,7 @@ private:
                     else {
                         break;
                     }
-                    p = q;
+                    //p = q;
                 }
             }
         }
